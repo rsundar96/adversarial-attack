@@ -11,7 +11,7 @@ def load_model() -> torch.nn.Module:
     Returns:
         Pretrained ResNet-18 model.
     """
-    model = models.resnet18(pretrained=True)
+    model = models.resnet18(weights="DEFAULT")
     model.eval()
 
     return model

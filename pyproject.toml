@@ -20,6 +20,3 @@ dev = [
 
 [project.urls]
 Repository = "https://github.com/rsundar96/adversarial-attack.git"
-
-[tool.ruff]
-target-version = "py39"
