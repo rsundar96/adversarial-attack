@@ -7,9 +7,17 @@ repos:
         args: [--fix]
       - id: ruff-format
         name: Ruff formatter
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (Python)
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
+      - id: check-added-large-files
+        name: Check addition of large files
+        args: ['--maxkb=50']
       - id: check-ast
         name: Check whether file parses as valid Python
       - id: check-toml
