@@ -1,8 +1,8 @@
 """Module containing utility functions."""
 
 import torch
-from PIL import Image
 import torchvision.models as models
+from PIL import Image
 
 
 def load_model() -> torch.nn.Module:
