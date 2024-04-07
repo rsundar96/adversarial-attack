@@ -28,6 +28,7 @@ repos:
         name: Check JSON
       - id: pretty-format-json
         name: Pretty format JSON
+        args: ["--autofix"]
       - id: check-toml
         name: Check TOML
       - id: check-yaml
