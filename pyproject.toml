@@ -8,15 +8,22 @@ version = "0.1.0"
 requires-python = ">=3.9"
 
 dependencies = [
+    "matplotlib",
     "pillow",
-    "torchvision"
+    "torchvision",
+    "tqdm"
 ]
 
 [project.optional-dependencies]
 dev = [
+    "coverage",
     "pre-commit",
-    "pip-tools"
+    "pip-tools",
+    "pytest"
 ]
 
 [project.urls]
 Repository = "https://github.com/rsundar96/adversarial-attack.git"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
