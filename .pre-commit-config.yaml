@@ -1,17 +1,21 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.5
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.3.0
     hooks:
-      - id: ruff
-        name: Ruff linter
-        args: [--fix]
-      - id: ruff-format
-        name: Ruff formatter
+      - id: black
+        name: Black code formatter
+        language_version: python3.9
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.3.1
+    hooks:
+      - id: autoflake
+        args: ["-i", "--expand-star-imports", "--remove-all-unused-imports"]
   - repo: https://github.com/pycqa/isort
     rev: 5.13.2
     hooks:
       - id: isort
         name: isort (Python)
+        args: ["--profile", "black", "--filter-files"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -20,6 +24,10 @@ repos:
         args: ['--maxkb=50']
       - id: check-ast
         name: Check whether file parses as valid Python
+      - id: check-json
+        name: Check JSON
+      - id: pretty-format-json
+        name: Pretty format JSON
       - id: check-toml
         name: Check TOML
       - id: check-yaml
