@@ -2,7 +2,7 @@
 
 This repository contains code that adds adversarial noise to a given image, tricking an image classification model into misclassifying the altered image as a specified target class.
 
-## 🔨Requirements and Installation
+## 🔨 Requirements and Installation
 
 [Miniforge (Conda)](https://github.com/conda-forge/miniforge) is recommended for creating a Python environment.
 
