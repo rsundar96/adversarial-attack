@@ -28,6 +28,25 @@ def denormalize(img: torch.Tensor, mean: list, std: list) -> torch.Tensor:
     return img * std + mean
 
 
+def get_class_values_from_idx(class_idx: int) -> str:
+    """Gets the class values corresponding to a given index.
+
+    Args:
+        class_idx: Index of the predicted class.
+
+    Returns:
+        Class values corresponding to the given class index.
+    """
+    IMAGENET_FILE_PATH = os.path.join(
+        os.path.dirname(__file__), IMAGENET_CLASS_IDX_VALUE_MAPPING
+    )
+
+    with open(IMAGENET_FILE_PATH, "r") as imagenet_class_idx_value_mapping_file:
+        data = json.load(imagenet_class_idx_value_mapping_file)
+
+    return data[str(class_idx)]
+
+
 def get_imagenet_class_idx_from_value(class_value: str) -> int:
     """Gets the class index for a given class value from the ImageNet dataset.
 
