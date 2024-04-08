@@ -3,23 +3,24 @@
 import matplotlib.pyplot as plt
 import torch
 
+from schemas import Result
 from utils import MEAN, STANDARD_DEVIATION, denormalize
 
 
-def plot_images(original_image: torch.Tensor, adversarial_image: torch.Tensor):
+def plot_images(orig_img: torch.Tensor, adv_img_results: Result):
     """Plot the original and adversarial images.
 
     Args:
-        original_image: Input image provided by the user.
-        adversarial_image: Adversarial image generated from given input image.
+        orig_img: Input image provided by the user.
+        adv_img_results: Adversarial img results as well as original img label and probability score.
     """
     fig, axes = plt.subplots(1, 2, figsize=(10, 5))
 
     original_image_denormalized = denormalize(
-        original_image, mean=MEAN, std=STANDARD_DEVIATION
+        orig_img, mean=MEAN, std=STANDARD_DEVIATION
     )
     adversarial_image_denormalized = denormalize(
-        adversarial_image, mean=MEAN, std=STANDARD_DEVIATION
+        adv_img_results.adv_img, mean=MEAN, std=STANDARD_DEVIATION
     )
 
     # Original image
@@ -27,6 +28,14 @@ def plot_images(original_image: torch.Tensor, adversarial_image: torch.Tensor):
     axes[0].imshow(original_image_np)
     axes[0].set_title("Original Image")
     axes[0].axis("off")
+    axes[0].text(
+        0.5,
+        -0.08,
+        f"Original Class: {adv_img_results.orig_label}\nProbability: {adv_img_results.orig_prob}%",
+        horizontalalignment="center",
+        verticalalignment="center",
+        transform=axes[0].transAxes,
+    )
 
     # Adversarial image
     adversarial_image_np = (
@@ -35,5 +44,13 @@ def plot_images(original_image: torch.Tensor, adversarial_image: torch.Tensor):
     axes[1].imshow(adversarial_image_np)
     axes[1].set_title("Adversarial Image")
     axes[1].axis("off")
+    axes[0].text(
+        1.7,
+        -0.08,
+        f"Target (Predicted) Class: {adv_img_results.adv_label}\nProbability: {adv_img_results.adv_prob}%",
+        horizontalalignment="center",
+        verticalalignment="center",
+        transform=axes[0].transAxes,
+    )
 
     plt.show()
