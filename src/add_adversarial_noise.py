@@ -2,14 +2,26 @@
 
 import argparse
 import logging
-from typing import Tuple, Union
+import sys
+from typing import Tuple
 
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
 from tqdm import tqdm
 
-from utils import get_imagenet_class_idx_from_value, load_image, load_model
+from plotting import plot_images
+from schemas import Result
+from utils import (
+    MEAN,
+    STANDARD_DEVIATION,
+    get_class_values_from_idx,
+    get_imagenet_class_idx_from_value,
+    load_image,
+    load_model,
+)
+
+logging.basicConfig(level=logging.INFO)
 
 
 class AdversarialImageGenerator:
@@ -24,6 +36,23 @@ class AdversarialImageGenerator:
         """
         self.model = load_model()
         self.target_class = target_class
+
+    def calculate_probability(self, output: torch.Tensor, prediction: int) -> float:
+        """Calculates the probability, given the model's prediction and output.
+
+        Args:
+            output: Scores predicted by the model for each class.
+            prediction: Class predicted by the model.
+
+        Returns:
+            Probability score associated with given class predicted by the model, in the form of percentage.
+        """
+        probability = torch.softmax(output, dim=1)[0, prediction].item()
+        probability = float("{:.2f}".format(probability * 100))
+
+        label = get_class_values_from_idx(prediction)
+
+        return probability, label
 
     def model_prediction(self, img: torch.Tensor) -> Tuple[torch.Tensor, int]:
         """Generates a prediction using a pre-trained model.
@@ -57,14 +86,16 @@ class AdversarialImageGenerator:
         Returns:
             Image Tensor with adversarial noise added.
         """
-        adversarial_img = input_img - alpha * data_grad.sign()
-        adversarial_img = torch.clamp(adversarial_img, -epsilon, epsilon)
+        x_adv = input_img - (alpha * data_grad.sign())
+        total_grad = x_adv - input_img
+        total_grad = torch.clamp(total_grad, -epsilon, epsilon)
+        adversarial_img = input_img + total_grad
 
         return adversarial_img
 
     def generate_adversarial_image(
         self, input_img: torch.Tensor, max_iterations: int = 5
-    ) -> Tuple[Union[torch.Tensor, None], Union[str, None]]:
+    ) -> Result:
         """Generates an adversarial image using the Iterative Target Class Method.
 
         Args:
@@ -72,13 +103,23 @@ class AdversarialImageGenerator:
             max_iterations: Maximum number of iterations to run the target class method.
 
         Returns:
-            A tuple containing either
-            - Image Tensor with adversarial noise added and the target class, or
-            - None, if the given image could not result in the model to make a prediction matching the target class.
+            A Result dataclass containing the adversarial img, label and probability score, along with the original image's label and probability score.
         """
         input_img = input_img.detach().requires_grad_(True)
-        expected_adversarial_class = get_imagenet_class_idx_from_value(
-            self.target_class
+
+        # Get expected target class idx
+        try:
+            expected_adversarial_class = get_imagenet_class_idx_from_value(
+                self.target_class
+            )
+        except ValueError as e:
+            logging.error(e)
+            sys.exit(1)
+
+        # Compute model probability on original input img
+        orig_model_output, orig_model_prediction = self.model_prediction(input_img)
+        clean_prob, clean_label = self.calculate_probability(
+            orig_model_output, orig_model_prediction
         )
 
         for _ in tqdm(
@@ -86,12 +127,6 @@ class AdversarialImageGenerator:
             desc="Adding adversarial noise to image to match target class",
         ):
             model_output, model_prediction = self.model_prediction(input_img)
-
-            if model_prediction == expected_adversarial_class:
-                logging.info(
-                    "Input image has already been classified as the target class."
-                )
-                return input_img, self.target_class
 
             # Calculate loss
             loss = torch.nn.CrossEntropyLoss()
@@ -107,18 +142,27 @@ class AdversarialImageGenerator:
 
             _, adversarial_img_prediction = self.model_prediction(adversarial_img)
 
-            if adversarial_img_prediction == expected_adversarial_class:
-                logging.info(
-                    "Adversarial image has been generated and is classified as target class."
-                )
-                return adversarial_img, self.target_class
-            else:
-                input_img = adversarial_img
+            input_img = adversarial_img
 
-        logging.warning(
-            "Maximum number of iterations reached. Adversarial image has not been generated to match target class."
-        )
-        return None, None
+        if adversarial_img_prediction == expected_adversarial_class:
+            logging.info(
+                "Adversarial image has been generated and is classified as target class."
+            )
+            adv_prob, adv_label = self.calculate_probability(
+                model_output, adversarial_img_prediction
+            )
+            return Result(
+                adv_img=adversarial_img,
+                adv_label=adv_label,
+                adv_prob=adv_prob,
+                orig_label=clean_label,
+                orig_prob=clean_prob,
+            )
+        else:
+            logging.info(
+                "Maximum number of iterations reached. Adversarial image has not been generated to match target class."
+            )
+            return Result()
 
 
 def preprocess_image(image: Image.Image) -> torch.Tensor:
@@ -135,7 +179,7 @@ def preprocess_image(image: Image.Image) -> torch.Tensor:
             transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            transforms.Normalize(mean=MEAN, std=STANDARD_DEVIATION),
         ]
     )
     input_tensor = preprocess(image)
@@ -151,11 +195,14 @@ def main(input_image: str, target_class: str):
 
     adversarial_img_generator = AdversarialImageGenerator(target_class)
 
-    adversarial_img, model_prediction = (
-        adversarial_img_generator.generate_adversarial_image(input_image)
-    )
+    adv_img_results = adversarial_img_generator.generate_adversarial_image(input_image)
 
-    return adversarial_img, model_prediction
+    if adv_img_results.adv_img is not None:
+        plot_images(input_image, adv_img_results)
+    else:
+        logging.info(
+            "Cannot plot results. Adversarial image that matches target class does not exist."
+        )
 
 
 if __name__ == "__main__":
