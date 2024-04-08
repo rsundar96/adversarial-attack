@@ -55,6 +55,9 @@ def get_imagenet_class_idx_from_value(class_value: str) -> int:
 
     Returns:
         The class index for the given target class value.
+
+    Raises:
+        ValueError: If the target class value is not in the ImageNet dataset.
     """
     IMAGENET_FILE_PATH = os.path.join(
         os.path.dirname(__file__), IMAGENET_CLASS_IDX_VALUE_MAPPING
@@ -67,6 +70,11 @@ def get_imagenet_class_idx_from_value(class_value: str) -> int:
     for key, value in data.items():
         if class_value in value:
             class_idx = key
+
+    if class_idx == -1:
+        raise ValueError(
+            f"No class index found for target class with value '{class_value}'. Please provide classes present in the ImageNet dataset."
+        )
 
     return int(class_idx)
 

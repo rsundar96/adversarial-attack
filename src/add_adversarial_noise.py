@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import sys
 from typing import Tuple
 
 import torch
@@ -19,6 +20,8 @@ from utils import (
     load_image,
     load_model,
 )
+
+logging.basicConfig(level=logging.INFO)
 
 
 class AdversarialImageGenerator:
@@ -105,9 +108,13 @@ class AdversarialImageGenerator:
         input_img = input_img.detach().requires_grad_(True)
 
         # Get expected target class idx
-        expected_adversarial_class = get_imagenet_class_idx_from_value(
-            self.target_class
-        )
+        try:
+            expected_adversarial_class = get_imagenet_class_idx_from_value(
+                self.target_class
+            )
+        except ValueError as e:
+            logging.error(e)
+            sys.exit(1)
 
         # Compute model probability on original input img
         orig_model_output, orig_model_prediction = self.model_prediction(input_img)
@@ -152,7 +159,7 @@ class AdversarialImageGenerator:
                 orig_prob=clean_prob,
             )
         else:
-            logging.warning(
+            logging.info(
                 "Maximum number of iterations reached. Adversarial image has not been generated to match target class."
             )
             return Result()
@@ -190,7 +197,12 @@ def main(input_image: str, target_class: str):
 
     adv_img_results = adversarial_img_generator.generate_adversarial_image(input_image)
 
-    plot_images(input_image, adv_img_results)
+    if adv_img_results.adv_img is not None:
+        plot_images(input_image, adv_img_results)
+    else:
+        logging.info(
+            "Cannot plot results. Adversarial image that matches target class does not exist."
+        )
 
 
 if __name__ == "__main__":
