@@ -7,7 +7,25 @@ import torch
 import torchvision.models as models
 from PIL import Image
 
+MEAN = [0.485, 0.456, 0.406]
+STANDARD_DEVIATION = [0.229, 0.224, 0.225]
 IMAGENET_CLASS_IDX_VALUE_MAPPING = "imagenet_dataset/class_idx_value_mapping.json"
+
+
+def denormalize(img: torch.Tensor, mean: list, std: list) -> torch.Tensor:
+    """Denormalizes a given image.
+
+    Args:
+        img: Input image to denormalize.
+        mean: Default mean values used for normalization on ImageNet.
+        std: Default standard deviation values used for normalization on ImageNet.
+
+    Returns:
+        Denormalized image tensor.
+    """
+    mean = torch.tensor(mean).view(1, -1, 1, 1)
+    std = torch.tensor(std).view(1, -1, 1, 1)
+    return img * std + mean
 
 
 def get_imagenet_class_idx_from_value(class_value: str) -> int:
